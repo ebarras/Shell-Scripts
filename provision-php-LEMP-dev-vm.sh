@@ -1,21 +1,26 @@
 #!/bin/bash
+#set -x
 
 # This script will set up a LEMP environment for local development on CentOS7.
 # - Erik Barras 2018-08-30
 
 ## Prework
+# Install EPEL
+sudo yum -y install epel-release
+# Install IUS
+sudo yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+# Install Sublime Text GPG Key
+sudo rpm -v --import https://download.sublimetext.com/sublimehq-rpm-pub.gpg
+# Install Sublime Text Repo
+sudo yum-config-manager --add-repo https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
 # Update + Upgrade everything
 sudo yum -y update
 sudo yum -y upgrade
 
 ## Sublime Text 3
-# Install Sublime Text GPG Key
-sudo rpm -v --import https://download.sublimetext.com/sublimehq-rpm-pub.gpg
-# Install Sublime Text Repo
-sudo yum-config-manager --add-repo https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
-# Install Sublime Text from Repo
+# Install Sublime Text from Repoe
 sudo yum -y install sublime-text
-#### Figure Out License and Add to Desktop in Gnome ####
+    # Figure Out License and Add to Desktop in Gnome #
 
 ## Git
 sudo yum -y install git
@@ -38,12 +43,17 @@ EOF
 if mysql -u root -p$mysql_password -e "exit"; then
 	echo -e "MySQL Password: $mysql_password" > ~/install-passwords.txt
 else
-	echo "Could Not Log In with New Random Password. Install Competed Previously, Leaving Password as Old Password." 1>&2
-	exit 1
+	echo "Could Not Log In with New Random Password. Install Competed Previously, Leaving Password as Old Password."
 fi
 
-## PHP 7.2
-
 ## Nginx
+sudo yum -y install nginx
+sudo systemctl start nginx.service
+sudo systemctl enable nginx.service
+
+## PHP 7.2
+#sudo yum install -y
+
+
 
 ## Composer
