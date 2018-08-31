@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 
 # This script will set up a LEMP environment for local development on CentOS7.
 # - Erik Barras 2018-08-30
@@ -42,12 +42,37 @@ EOF
 
 if mysql -u root -p$mysql_password -e "exit"; then
 	echo -e "MySQL Password: $mysql_password" > ~/install-passwords.txt
+	# Here you need to set this as an ENV variable in bashrc local to the user.
 else
 	echo "Could Not Log In with New Random Password. Install Competed Previously, Leaving Password as Old Password."
 fi
 
 ## Nginx
 sudo yum -y install nginx
+
+# update the nginx user
+sudo sed -i -e "s/user nginx;/user $USER;/g" /etc/nginx/nginx.conf
+sudo sed -i -e "s/80 default_server;/80;/g" /etc/nginx/nginx.conf
+
+# Add test.conf Nginx VHost File
+sudo dd of=/etc/nginx/conf.d/test.conf << EOF
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+  server_name ~^(?<vhost>.+)\\.localtest.me\$;
+  root /home/$USER/Code/\$vhost/public;
+  index index.php index.html;
+  server_name _;
+  location / {
+    try_files \$uri \$uri/ /index.php\$is_args\$args;
+  }
+  location ~ \.php\$ {
+    include fastcgi.conf;
+    fastcgi_pass unix:/run/php-fpm/php-fpm.sock;
+  }
+}
+EOF
+
 sudo systemctl start nginx
 sudo systemctl enable nginx
 
@@ -55,7 +80,56 @@ sudo systemctl enable nginx
 sudo yum -y install php72u-fpm php72u-cli php72u-mysqlnd php72u-gd php72u-common \
 php72u-opcache php72u-pecl-memcached php72u-mbstring php72u-xml php72u-soap php72u-intl
 
+# Update PHP Settings
+sudo sed -i -e "s/error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT/error_reporting = E_ALL/g" /etc/php.ini
+sudo sed -i -e "s/memory_limit = 128M/memory_limit = 512M/g" /etc/php.ini
+sudo sed -i -e "s/;date.timezone =/date.timezone = UTC/g" /etc/php.ini
+sudo sed -i -e "s/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g" /etc/php.ini
+# create a socket instead of a port
+sudo sed -i -e "s/listen = 127.0.0.1:9000/listen = \/run\/php-fpm\/php-fpm.sock/g" /etc/php-fpm.d/www.conf
+sudo sed -i -e "s/;listen.acl_users = nginx/listen.acl_users = $USER/g" /etc/php-fpm.d/www.conf
+
+# fix permissions on run directory
+sudo chown -R $USER:$(id -gn $USER) /run/php-fpm
+
+# Update PHP User to My User
+sudo sed -i -e "s/user = php-fpm/user = $USER/g" /etc/php-fpm.d/www.conf
+sudo sed -i -e "s/group = php-fpm/group = $(id -gn)/g" /etc/php-fpm.d/www.conf
+
+# set up the ~/Code directory and http://info.test website
+mkdir -p /home/"$USER"/Code/info/public
+echo "<?php phpinfo();" > /home/"$USER"/Code/info/public/index.php
+
 sudo systemctl start php-fpm
 sudo systemctl enable php-fpm
 
 ## Composer
+# Install Composer
+curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
+
+## Redis
+# Install Redis
+sudo yum -y install redis40u
+
+# Set Redis Password Here in the future, add it to the pw file, add to ENV.
+
+sudo systemctl start redis
+sudo systemctl enable redis
+
+## Cleanup
+# restart all services
+sudo systemctl restart php-fpm
+sudo systemctl restart nginx
+sudo systemctl restart mariadb
+sudo systemctl restart redis
+
+# fix permissions on home directory
+sudo chown -R $USER:$(id -gn $USER) ~/
+
+# turn off bullshit selinux. This should be researched after vacation to work with SeLinux just to learn that.
+sudo setenforce Permissive
+
+# open firewalls for external testing
+sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
+sudo firewall-cmd --zone=public --add-port=443/tcp --permanent
+sudo firewall-cmd --reload
