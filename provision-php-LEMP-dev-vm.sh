@@ -27,8 +27,8 @@ sudo yum -y install git
 
 ## MariaDB
 sudo yum -y install mariadb-server mariadb
-sudo systemctl start mariadb.service
-sudo systemctl enable mariadb.service
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
 
 mysql_password=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 16);
 # Secure the Install, write random DB password to file.
@@ -48,12 +48,14 @@ fi
 
 ## Nginx
 sudo yum -y install nginx
-sudo systemctl start nginx.service
-sudo systemctl enable nginx.service
+sudo systemctl start nginx
+sudo systemctl enable nginx
 
 ## PHP 7.2
-#sudo yum install -y
+sudo yum -y install php72u-fpm php72u-cli php72u-mysqlnd php72u-gd php72u-common \
+php72u-opcache php72u-pecl-memcached php72u-mbstring php72u-xml php72u-soap php72u-intl
 
-
+sudo systemctl start php-fpm
+sudo systemctl enable php-fpm
 
 ## Composer
