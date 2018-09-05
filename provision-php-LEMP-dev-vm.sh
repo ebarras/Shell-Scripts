@@ -123,13 +123,37 @@ sudo systemctl restart nginx
 sudo systemctl restart mariadb
 sudo systemctl restart redis
 
-# fix permissions on home directory
+# fix permissions
 sudo chown -R $USER:$(id -gn $USER) ~/
+sudo chmod 755 /var/log/nginx/
 
 # turn off bullshit selinux. This should be researched after vacation to work with SeLinux just to learn that.
-sudo setenforce Permissive
+sudo setenforce 0
+sudo sed -i -e "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
 
 # open firewalls for external testing
 sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
 sudo firewall-cmd --zone=public --add-port=443/tcp --permanent
 sudo firewall-cmd --reload
+
+## quality of life improvements
+# git
+git config --global user.name "ebarras"
+git config --global user.email "ebarras@gmail.com"
+
+# aliases
+grep -q -F '# Load the shell dotfiles' ~/.bashrc || cat <<EOT >> ~/.bashrc
+
+# Load the shell dotfiles, and then some:
+# * ~/.path can be used to extend \`\$PATH\`.
+# * ~/.extra can be used for other settings you don’t want to commit.
+for file in ~/.{path,bash_prompt,exports,aliases,functions,extra}; do
+	[ -r "\$file" ] && [ -f "\$file" ] && source "\$file";
+done;
+unset file;
+EOT
+
+yes | cp aliases ~/.aliases
+
+# source .bashrc to pick up changes
+. ~/.bashrc

@@ -1,0 +1,9 @@
+# GIT
+# --------------------------------------------
+alias ga="git add"
+alias gaa="git add ."
+alias gc="git commit -m "
+alias gp="git push github"
+alias gs="git status"
+alias nah="git reset --hard; git clean -df;"
+# --------------------------------------------
