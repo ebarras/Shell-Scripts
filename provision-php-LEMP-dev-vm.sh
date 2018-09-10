@@ -47,6 +47,14 @@ else
 	echo "Could Not Log In with New Random Password. Install Competed Previously, Leaving Password as Old Password."
 fi
 
+# PHPMyAdmin
+if [ ! -d ~/Code/phpmyadmin/public/ ]; then
+    sudo wget -nc -O /tmp/phpMyAdmin-4.8.3-english.tar.gz https://files.phpmyadmin.net/phpMyAdmin/4.8.3/phpMyAdmin-4.8.3-english.tar.gz
+    mkdir -p ~/Code/phpmyadmin/public && tar -xzvf /tmp/phpMyAdmin-4.8.3-english.tar.gz -C ~/Code/phpmyadmin/public --strip-components 1
+else
+    echo "PHPMyAdmin Already Installed... Skipping"
+fi
+
 ## Nginx
 sudo yum -y install nginx
 
@@ -92,6 +100,9 @@ sudo sed -i -e "s/;listen.acl_users = nginx/listen.acl_users = $USER/g" /etc/php
 # fix permissions on run directory
 sudo chown -R $USER:$(id -gn $USER) /run/php-fpm
 
+# fix permissions on session directory
+sudo chown -R $USER:$(id -gn $USER) /var/lib/php/fpm/
+
 # Update PHP User to My User
 sudo sed -i -e "s/user = php-fpm/user = $USER/g" /etc/php-fpm.d/www.conf
 sudo sed -i -e "s/group = php-fpm/group = $(id -gn)/g" /etc/php-fpm.d/www.conf
@@ -134,6 +145,7 @@ sudo sed -i -e "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
 # open firewalls for external testing
 sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
 sudo firewall-cmd --zone=public --add-port=443/tcp --permanent
+sudo firewall-cmd --zone=public --add-port=3306/tcp --permanent
 sudo firewall-cmd --reload
 
 ## quality of life improvements
